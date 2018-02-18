@@ -8,8 +8,8 @@ def Negative_Exponential_Distribution(rate):
     return ((-1/rate) * math.log(1-u))
 
 def Pareto_Distribution(rate):
-    u 
-    return None
+    u = random.uniform(0,1)
+    return ((1*rate)/u)
 
 class Event:
     def __init__(self, event_type, time_stamp):
