@@ -1,5 +1,6 @@
 import heapq, random, math
 from queue import *
+import matplotlib.pyplot as plt
 
 # given lambda = .1 = rate
 def Negative_Exponential_Distribution(rate):
@@ -58,6 +59,8 @@ def main():
     number_of_trials = 10000
     global time, MAXBUFFER, buffer_queue, GEL, current_lambda, packet_drop, packet_length_array,used_server_time
     lambda_trials_infinite_buffer = [.1, .25, .4, .55, .65, .8, .9]
+    utilization_graph = []
+    queue_length_graph = []
     for trial in lambda_trials_infinite_buffer:
         time = 0 # Current Time
         #length = 0 # Number of packets in queue (BUFFER) including those being transmitted by server
@@ -82,15 +85,28 @@ def main():
             else:
                 Process_D(event_object)
 
+        utilization_graph.append(used_server_time/time)
+        queue_length_graph.append(sum(packet_length_array) / len(packet_length_array))
         print("lambda: " + str(trial) + " buffer: infinite")
         print("Utilization: " + str(used_server_time / time))
         print("Mean Queue Length: " + str(sum(packet_length_array) / len(packet_length_array)))
         print("Packet Drop: " + str(packet_drop)) 
         print()
+    plt.plot(lambda_trials_infinite_buffer,utilization_graph)
+    plt.ylabel('Server Utilization')
+    plt.xlabel('Lambda Rate Value')
+    plt.title('Server Utilization for Infinite Buffer')
+    plt.show()
+    plt.plot(lambda_trials_infinite_buffer,queue_length_graph)
+    plt.ylabel('Average Queue Length')
+    plt.xlabel('Lambda Rate Value')
+    plt.title('Average Queue Length for Infinite Buffer')
+    plt.show()
     buffer_sizes = [1,20,50]
     lambda_trials = [.2,.4,.6,.8,.9]
-    for trial in lambda_trials:
-        for buffer_size in buffer_sizes:
+    for buffer_size in buffer_sizes:
+        packet_drop_graph = []
+        for trial in lambda_trials:
             time = 0 # Current Time
             #length = 0 # Number of packets in queue (BUFFER) including those being transmitted by server
             MAXBUFFER = buffer_size # This is a variable to each test case
@@ -113,12 +129,17 @@ def main():
                     Process_A(event_object) 
                 else:
                     Process_D(event_object)
+            packet_drop_graph.append(packet_drop)
             print("lambda: " + str(trial) + " buffer: " + str(buffer_size))
             print("Utilization: " + str(used_server_time / time))
             print("Mean Queue Length: " + str(sum(packet_length_array) / len(packet_length_array)))
             print("Packet Drop: " + str(packet_drop))
             print()
-
+        plt.plot(lambda_trials,packet_drop_graph)
+        plt.ylabel('Packets Dropped')
+        plt.xlabel('Lambda Rate Value')
+        plt.title('Packets Dropped for Buffer Size ' + str(buffer_size))
+        plt.show()
 
 if __name__ == "__main__":
     main()
