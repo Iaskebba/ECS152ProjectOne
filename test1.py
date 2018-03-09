@@ -1,11 +1,17 @@
 import heapq, random, math
 from queue import *
 import matplotlib.pyplot as plt
+import numpy as np
 
 # given lambda = .1 = rate
 def Negative_Exponential_Distribution(rate):
     u = random.uniform(0,1)
     return ((-1/rate) * math.log(1-u))
+
+def Pareto_Distribution(rate):
+    return np.random.pareto(rate)
+    #u = random.uniform(0,1)
+    #return ((1*rate)/u)
 
 class Event:
     def __init__(self, event_type, time_stamp):
@@ -21,7 +27,7 @@ class Event:
 def Process_A(event_object):
     global time, MAXBUFFER, buffer_queue, GEL, current_lambda, packet_drop, packet_length_array,used_server_time
     time = event_object.time_stamp
-    next_arrival_event = Event('a',Negative_Exponential_Distribution(current_lambda) + time)
+    next_arrival_event = Event('a',Pareto_Distribution(current_lambda) + time)
     heapq.heappush(GEL, next_arrival_event)
     
     packet_length_array.append(buffer_queue.qsize())
@@ -56,7 +62,7 @@ def Process_D(event_object):
 
 def main():
     # Initialize 
-    number_of_trials = 100000
+    number_of_trials = 10000
     global time, MAXBUFFER, buffer_queue, GEL, current_lambda, packet_drop, packet_length_array,used_server_time
     lambda_trials_infinite_buffer = [.1, .25, .4, .55, .65, .8, .9]
     utilization_graph = []
