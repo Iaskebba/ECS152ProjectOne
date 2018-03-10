@@ -54,10 +54,10 @@ def Process_Token(event_object):
     # Hosts Buffer is not empty
     else:
         frame_size = 0
-        for x in Range(0, len(host_buffers[event_object.host])):
+        for x in range(0, host_buffers[event_object.host].qsize()):
             current_packet = host_buffers[event_object.host].get()
             start_host = event_object.host
-            end_host = current_packet.host
+            end_host = current_packet.destination
             # will go in cycle
             if start_host > end_host:
                 steps_to_hit_end = current_host_number - start_host
@@ -117,15 +117,23 @@ def main():
             print("Throughput: " + str(packets_transmitted / float(time)))
             print("Average Packet Delay: " + str((total_queuing_delay / float(packets_transmitted)) + (total_transmission_delay / float(packets_transmitted)) + (total_propagation_delay / float(packets_transmitted)))) 
             print()
+        print(lambda_trials_infinite_buffer)
+        print(len(lambda_trials_infinite_buffer))
+        print(throughput_graph)
+        print(len(throughput_graph))
+        print(packet_delay)
+        print(len(packet_delay))
         plt.plot(lambda_trials_infinite_buffer,throughput_graph)
         plt.ylabel('Throughput')
         plt.xlabel('Lambda Rate Value')
-        plt.title('Server Throughput for Hosts = %s', str(current_host_number))
+        title = 'Server Throughput for Hosts = ' + str(host_number)
+        plt.title(title)
         plt.show()
-        plt.plot(lambda_trials_infinite_buffer,packet_delay_graph)
+        plt.plot(lambda_trials_infinite_buffer,packet_delay)
         plt.ylabel('Average Packet Delay')
         plt.xlabel('Lambda Rate Value')
-        plt.title('Average Packet Delay for Hosts = %s', str(current_host_number))
+        title = 'Average Packet Delay for Hosts = ' + str(host_number)
+        plt.title(title)
         plt.show()
 
 
