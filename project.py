@@ -46,7 +46,7 @@ def Process_A(event_object):
 
 
 def Process_Token(event_object):
-    global time, MAXBUFFER, host_buffers, GEL, current_lambda, number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps
+    global time, MAXBUFFER, host_buffers, GEL, current_lambda, number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps, bytes_transmitted
     time = event_object.time_stamp
     # Hosts buffer is empty
     if host_buffers[event_object.host].empty():
@@ -54,6 +54,7 @@ def Process_Token(event_object):
     # Hosts Buffer is not empty
     else:
         frame_size = 0
+        packet_list = []
         for x in range(0, host_buffers[event_object.host].qsize()):
             current_packet = host_buffers[event_object.host].get()
             start_host = event_object.host
@@ -64,19 +65,22 @@ def Process_Token(event_object):
                 total_steps = steps_to_hit_end + end_host
             else:
                 total_steps = end_host - start_host
-
+            packet_list.append(total_steps)
+            bytes_transmitted += current_packet.size
             packets_transmitted += 1
             total_queuing_delay += time - current_packet.arrival_time
-            total_transmission_delay += current_packet.size / 100.0 * total_steps
+#            total_transmission_delay += current_packet.size / 100.0 * total_steps
             total_propagation_delay += .00001 * total_steps
             frame_size += current_packet.size
-        next_packet_time = (.00001 * current_host_number) + ((current_packet.size / 100.0) * current_host_number) 
-        next_token_event = Event('t', time + next_packet_time, get_next_host(event_object))
+        for step in packet_list:
+            total_transmission_delay += (frame_size / 100.0) * step
+        next_token_time = (.00001 * current_host_number) + ((frame_size / 100.0) * current_host_number) 
+        next_token_event = Event('t', time + next_token_time, get_next_host(event_object))
 
 def main():
     # Initialize 
     number_of_trials = 100000
-    global time, MAXBUFFER, host_buffers, GEL, current_lambda, used_server_time,number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps
+    global time, MAXBUFFER, host_buffers, GEL, current_lambda, used_server_time,number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps, bytes_transmitted
     lambda_trials_infinite_buffer = [.01, .05, .1, .2, .3, .5, .6, .7, .8, .9]
     ring_trials = [10, 25]
 
@@ -85,6 +89,7 @@ def main():
         current_host_number = host_number
         throughput_graph = []
         packet_delay = []
+        bytes_transmitted = 0
         packets_transmitted = 0
         total_queuing_delay = 0
         total_transmission_delay = 0
@@ -111,10 +116,10 @@ def main():
                     Process_A(event_object) 
                 else:
                     Process_Token(event_object)
-            throughput_graph.append(packets_transmitted / float(time))
+            throughput_graph.append(bytes_transmitted / float(time))
             packet_delay.append((total_queuing_delay / float(packets_transmitted)) + (total_transmission_delay / float(packets_transmitted)) + (total_propagation_delay / float(packets_transmitted)))
             print("lambda: " + str(trial))
-            print("Throughput: " + str(packets_transmitted / float(time)))
+            print("Throughput: " + str(bytes_transmitted / float(time)))
             print("Average Packet Delay: " + str((total_queuing_delay / float(packets_transmitted)) + (total_transmission_delay / float(packets_transmitted)) + (total_propagation_delay / float(packets_transmitted)))) 
             print()
         print(lambda_trials_infinite_buffer)
