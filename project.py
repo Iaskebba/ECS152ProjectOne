@@ -20,7 +20,8 @@ class Event:
     def __eq__(self, other):
         return (self.time_stamp == other.time_stamp)
 
-def get_random_host():
+def get_random_host(current_host_number):
+    while random.randint(1, current_host
     return random.randint(1, current_host_number)    
 
 def get_next_host(event_object):
@@ -74,7 +75,7 @@ def Process_Token(event_object):
             frame_size += current_packet.size
         for step in packet_list:
             total_transmission_delay += (frame_size / 100.0) * step
-        next_token_time = (.00001 * current_host_number) + ((frame_size / 100.0) * current_host_number) 
+        next_token_time = (.00001 * current_host_number) + .00001 + ((frame_size / 100.0) * current_host_number) 
         next_token_event = Event('t', time + next_token_time, get_next_host(event_object))
 
 def main():
