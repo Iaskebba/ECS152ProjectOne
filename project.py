@@ -21,8 +21,10 @@ class Event:
         return (self.time_stamp == other.time_stamp)
 
 def get_random_host(current_host):
-    while random.randint(1, current_host_number) == current_host:
-        return random.randint(1, current_host_number)    
+    while True:
+        test = random.randint(1, current_host_number)
+        if test != current_host:
+            return test
 
 def get_next_host(event_object):
     if event_object.host == current_host_number:
