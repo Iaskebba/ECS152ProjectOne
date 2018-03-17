@@ -20,9 +20,9 @@ class Event:
     def __eq__(self, other):
         return (self.time_stamp == other.time_stamp)
 
-def get_random_host(current_host_number):
-    while random.randint(1, current_host
-    return random.randint(1, current_host_number)    
+def get_random_host(current_host):
+    while random.randint(1, current_host_number) == current_host:
+        return random.randint(1, current_host_number)    
 
 def get_next_host(event_object):
     if event_object.host == current_host_number:
@@ -32,9 +32,9 @@ def get_next_host(event_object):
 
 
 class Packet:
-    def __init__(self, arrival_time):
+    def __init__(self, arrival_time,current_host):
         self.size = random.randint(64,1518)
-        self.destination = get_random_host()
+        self.destination = get_random_host(current_host)
         self.arrival_time = arrival_time
 
 def Process_A(event_object):
@@ -43,7 +43,7 @@ def Process_A(event_object):
     next_arrival_event = Event('a',Negative_Exponential_Distribution(current_lambda) + time, event_object.host)
     heapq.heappush(GEL, next_arrival_event) 
     
-    host_buffers[event_object.host].put(Packet(time)) 
+    host_buffers[event_object.host].put(Packet(time,event_object.host)) 
 
 
 def Process_Token(event_object):
