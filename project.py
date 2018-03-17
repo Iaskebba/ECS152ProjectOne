@@ -7,7 +7,6 @@ def Negative_Exponential_Distribution(rate):
     u = random.uniform(0,1)
     return ((-1/rate) * math.log(1-u))
 
-
 class Event:
     def __init__(self, event_type, time_stamp, host):
         self.event_type = event_type
@@ -34,22 +33,23 @@ def get_next_host(event_object):
 
 
 class Packet:
-    def __init__(self, arrival_time,current_host):
-        self.size = random.randint(64,1518)
+    def __init__(self, arrival_time,current_host,packet_size):
+        self.size = packet_size
         self.destination = get_random_host(current_host)
         self.arrival_time = arrival_time
 
 def Process_A(event_object):
-    global time, MAXBUFFER, host_buffers, GEL, current_lambda, number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps
+    global packet_trial,packet_sizes,time, MAXBUFFER, host_buffers, GEL, current_lambda, number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps
     time = event_object.time_stamp
     next_arrival_event = Event('a',Negative_Exponential_Distribution(current_lambda) + time, event_object.host)
     heapq.heappush(GEL, next_arrival_event) 
-    
-    host_buffers[event_object.host].put(Packet(time,event_object.host)) 
+    packet_size = packet_sizes[packet_trial]
+    packet_trial += 1
+    host_buffers[event_object.host].put(Packet(time,event_object.host,packet_size)) 
 
 
 def Process_Token(event_object):
-    global time, MAXBUFFER, host_buffers, GEL, current_lambda, number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps, bytes_transmitted
+    global packet_trial,packet_sizes,time, MAXBUFFER, host_buffers, GEL, current_lambda, number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps, bytes_transmitted
     time = event_object.time_stamp
     # Hosts buffer is empty
     if host_buffers[event_object.host].empty():
@@ -83,11 +83,12 @@ def Process_Token(event_object):
 def main():
     # Initialize 
     number_of_trials = 100000
-    global time, MAXBUFFER, host_buffers, GEL, current_lambda, used_server_time,number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps, bytes_transmitted
+    global packet_trial,packet_sizes, time, MAXBUFFER, host_buffers, GEL, current_lambda, used_server_time,number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps, bytes_transmitted
     lambda_trials_infinite_buffer = [.01, .05, .1, .2, .3, .5, .6, .7, .8, .9]
     ring_trials = [10, 25]
-
-
+    packet_sizes = []
+    for x in range(0, 100000):
+        packet_sizes.append(random.randint(64,1518))
     for host_number in ring_trials:
         current_host_number = host_number
         throughput_graph = []
@@ -99,6 +100,7 @@ def main():
         total_propagation_delay = 0
         for trial in lambda_trials_infinite_buffer:
             time = 0 # Current Time
+            packet_trial = 0
             MAXBUFFER = math.inf # This is a variable to each test case
             host_buffers = {} # buffer Queues for all hosts
             GEL = [] # Global Event List 
