@@ -73,13 +73,13 @@ def Process_Token(event_object):
             packets_transmitted += 1
             total_queuing_delay += time - current_packet.arrival_time
 #            total_transmission_delay += current_packet.size / 100.0 * total_steps
-            total_propagation_delay += .00001 * total_steps
+            total_propagation_delay += 0.00001 * total_steps
             frame_size += current_packet.size
         for step in packet_list:
-            total_transmission_delay += (frame_size / 100.0) * step
-        next_token_time = (.00001 * current_host_number) + .00001 + ((frame_size / 100.0) * current_host_number) 
+            total_transmission_delay += (frame_size / (100000000.0/8.0)) * step
+        next_token_time = (0.00001 * current_host_number) + 0.00001 + ((frame_size / (100000000.0/8.0)) * current_host_number) 
         next_token_event = Event('t', time + next_token_time, get_next_host(event_object))
-
+    heapq.heappush(GEL, next_token_event)
 def main():
     # Initialize 
     number_of_trials = 100000
@@ -108,16 +108,19 @@ def main():
             current_lambda = trial
             
             # init
-            for x in range(1,host_number):
+            for x in range(1,host_number+1):
                 host_buffers[x] = Queue()
-                init_event = Event('a', 0, x)
+                init_event = Event('a',0, x)
                 heapq.heappush(GEL, init_event)
             init_event = Event('t', 0, 1)
             heapq.heappush(GEL, init_event)
 
             for i in range(number_of_trials):
                 event_object = heapq.heappop(GEL)
+#                print (event_object.event_type)
+#                print ( "this is time: " + str(event_object.time_stamp))
                 if event_object.event_type == 'a':
+                    
                     Process_A(event_object) 
                 else:
                     Process_Token(event_object)
