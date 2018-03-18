@@ -41,19 +41,41 @@ class Packet:
 def Process_A(event_object):
     global packet_trial,packet_sizes,time, MAXBUFFER, host_buffers, GEL, current_lambda, number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps
     time = event_object.time_stamp
+#    print("time is: " + str(time))
+#    print("current lambda is: " + str(current_lambda))
     next_arrival_event = Event('a',Negative_Exponential_Distribution(current_lambda) + time, event_object.host)
     heapq.heappush(GEL, next_arrival_event) 
     packet_size = packet_sizes[packet_trial]
     packet_trial += 1
     host_buffers[event_object.host].put(Packet(time,event_object.host,packet_size)) 
 
+def find_first_non_empty_host(last_packet_host):
+    global host_buffers, current_host_number
+    for x in range(last_packet_host, current_host_number + 1):
+        if not host_buffers[x].empty():
+            return x
+    for x in range(1, last_packet_host):
+        if not host_buffers[x].empty():
+            return x
+
+def empty_buffers():
+    global current_host_number, host_buffers
+    for x in range(1, current_host_number + 1):
+        if not host_buffers[x].empty():  
+            return 1
+    return 0
 
 def Process_Token(event_object):
-    global packet_trial,packet_sizes,time, MAXBUFFER, host_buffers, GEL, current_lambda, number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps, bytes_transmitted
+    global time_till_unlock, last_host, token_lock,  packet_trial,packet_sizes,time, MAXBUFFER, host_buffers, GEL, current_lambda, number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps, bytes_transmitted
     time = event_object.time_stamp
+#    if current_lambda == .01:
+#        print("time is: " + str(time))
+#        print("lambda is: " + str(current_lambda))
     # Hosts buffer is empty
     if host_buffers[event_object.host].empty():
-        next_token_event = Event('t', time + 0.00001, get_next_host(event_object))
+        last_host = event_object.host
+        token_lock = 0
+        #next_token_event = Event('t', time + 0.00001, get_next_host(event_object))
     # Hosts Buffer is not empty
     else:
         frame_size = 0
@@ -77,13 +99,18 @@ def Process_Token(event_object):
             frame_size += current_packet.size
         for step in packet_list:
             total_transmission_delay += (frame_size / (100000000.0/8.0)) * step
-        next_token_time = (0.00001 * current_host_number) + 0.00001 + ((frame_size / (100000000.0/8.0)) * current_host_number) 
-        next_token_event = Event('t', time + next_token_time, get_next_host(event_object))
-    heapq.heappush(GEL, next_token_event)
+        token_lock = 1
+        last_host = event_object.host
+        time_till_unlock = (0.00001 * current_host_number) + ((frame_size / (100000000.0/8.0)) * current_host_number) + time      
+        #next_token_time = (0.00001 * current_host_number) + 0.00001 + ((frame_size / (100000000.0/8.0)) * current_host_number) 
+        #next_token_event = Event('t', time + next_token_time, get_next_host(event_object))
+    #heapq.heappush(GEL, next_token_event)
+
+
 def main():
     # Initialize 
     number_of_trials = 100000
-    global packet_trial,packet_sizes, time, MAXBUFFER, host_buffers, GEL, current_lambda, used_server_time,number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps, bytes_transmitted
+    global time_till_unlock, last_host, token_lock, not_empty, packet_trial,packet_sizes, time, MAXBUFFER, host_buffers, GEL, current_lambda, used_server_time,number_of_hosts, current_host_number, total_queuing_delay, total_transmission_delay, total_propagation_delay, packets_transmitted, total_steps, bytes_transmitted
     lambda_trials_infinite_buffer = [.01, .05, .1, .2, .3, .5, .6, .7, .8, .9]
     ring_trials = [10, 25]
     packet_sizes = []
@@ -93,12 +120,13 @@ def main():
         current_host_number = host_number
         throughput_graph = []
         packet_delay = []
-        bytes_transmitted = 0
-        packets_transmitted = 0
-        total_queuing_delay = 0
-        total_transmission_delay = 0
-        total_propagation_delay = 0
         for trial in lambda_trials_infinite_buffer:
+            bytes_transmitted = 0
+            packets_transmitted = 0
+            total_queuing_delay = 0
+            total_transmission_delay = 0
+            total_propagation_delay = 0
+            token_lock = 1
             time = 0 # Current Time
             packet_trial = 0
             MAXBUFFER = math.inf # This is a variable to each test case
@@ -106,7 +134,8 @@ def main():
             GEL = [] # Global Event List 
             
             current_lambda = trial
-            
+            token_lock = 0
+            time_till_unlock = 0
             # init
             for x in range(1,host_number+1):
                 host_buffers[x] = Queue()
@@ -114,19 +143,35 @@ def main():
                 heapq.heappush(GEL, init_event)
             init_event = Event('t', 0, 1)
             heapq.heappush(GEL, init_event)
-
-            for i in range(number_of_trials):
-                event_object = heapq.heappop(GEL)
+            counter = 0
+            while counter < number_of_trials:
+                if token_lock == 1 and empty_buffers() == 1:
+                    if time >= time_till_unlock:
+                        next_token_host = find_first_non_empty_host(last_host)
+                        if last_host > next_token_host:
+                            steps_to_hit_end = current_host_number - last_host
+                            total_steps = steps_to_hit_end + last_host
+                        else:
+                            total_steps = next_token_host + last_host
+                        event_object = Event('t', time + total_steps * .00001, next_token_host)
+                        token_lock = 0
+                    else:
+                        event_object = heapq.heappop(GEL)
+                else:
+                    event_object = heapq.heappop(GEL)
 #                print (event_object.event_type)
 #                print ( "this is time: " + str(event_object.time_stamp))
-                if event_object.event_type == 'a':
-                    
-                    Process_A(event_object) 
-                else:
+                if token_lock == 0 and empty_buffers() == 1 and time >= time_till_unlock:
                     Process_Token(event_object)
+                else:
+                    Process_A(event_object)
+                counter += 1
+            print("total time is: " + str(time))
             throughput_graph.append(bytes_transmitted / float(time))
             packet_delay.append((total_queuing_delay / float(packets_transmitted)) + (total_transmission_delay / float(packets_transmitted)) + (total_propagation_delay / float(packets_transmitted)))
             print("lambda: " + str(trial))
+            print(bytes_transmitted)
+            print(time)
             print("Throughput: " + str(bytes_transmitted / float(time)))
             print("Average Packet Delay: " + str((total_queuing_delay / float(packets_transmitted)) + (total_transmission_delay / float(packets_transmitted)) + (total_propagation_delay / float(packets_transmitted)))) 
             print()
