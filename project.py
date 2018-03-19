@@ -93,12 +93,12 @@ def main():
         current_host_number = host_number
         throughput_graph = []
         packet_delay = []
-        bytes_transmitted = 0
-        packets_transmitted = 0
-        total_queuing_delay = 0
-        total_transmission_delay = 0
-        total_propagation_delay = 0
         for trial in lambda_trials_infinite_buffer:
+            bytes_transmitted = 0
+            packets_transmitted = 0
+            total_queuing_delay = 0
+            total_transmission_delay = 0
+            total_propagation_delay = 0
             time = 0 # Current Time
             packet_trial = 0
             MAXBUFFER = math.inf # This is a variable to each test case
